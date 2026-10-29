@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>鬼畜アスレチック：VOID RUN</title>
+<style>
+:root{--site-primary:#ff3b63;--site-secondary:#28234b;--site-background:#100f1c;--site-on-primary:#ffffff;--site-on-secondary:#f7f4ff;--site-on-background:#f7f4ff;--site-font-body:system-ui,-apple-system,"Segoe UI",sans-serif;--site-font-heading:system-ui,-apple-system,"Segoe UI",sans-serif;--site-heading-scale:1;--site-spacing-scale:1;--site-radius-scale:1;--site-decoration-opacity:1}
+*{box-sizing:border-box}body{margin:0;background:var(--site-background);color:var(--site-on-background);font-family:var(--site-font-body)}
+#app{min-height:100vh;background-color:var(--site-background);color:var(--site-on-background);padding:clamp(12px,3vw,28px);overflow:hidden;position:relative}
+header{max-width:1000px;margin:0 auto 18px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.logo{font-weight:1000;letter-spacing:.14em;color:#ff426d;font-size:13px}.tag{font-size:11px;color:#b8b4d4;letter-spacing:.12em}
+main{max-width:1000px;margin:auto;display:grid;grid-template-columns:minmax(0,1.65fr) minmax(230px,.8fr);gap:16px}
+.panel{background:#19182a;border:1px solid #37334f;border-radius:12px;padding:16px;min-width:0}
+h1{font-size:clamp(25px,5vw,42px);line-height:1.04;margin:5px 0 10px;letter-spacing:-.04em}h1 span{color:#ff426d}
+.sub{font-size:13px;color:#b8b4d4;line-height:1.65;margin:0 0 15px}
+canvas{width:100%;height:auto;display:block;border:1px solid #454061;border-radius:8px;background:#0a0b16;touch-action:none}
+.hud{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:10px 0 12px;font:700 12px ui-monospace,monospace;color:#d6d1f2}
+.hud b{color:#fff}.bar{height:5px;background:#343049;border-radius:10px;overflow:hidden;margin-bottom:12px}.bar div{height:100%;width:0;background:#ff426d;transition:width .1s}
+button{font:800 13px var(--site-font-body);color:white;background:#ff3b63;border:0;border-radius:8px;padding:12px 15px;cursor:pointer;transition:transform .12s,filter .12s}
+button:hover{filter:brightness(1.12);transform:translateY(-1px)}button:focus-visible{outline:3px solid #fff;outline-offset:3px}
+button.secondary{background:#302d49;border:1px solid #514b70}button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.controls{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px}.controls button{padding:13px 4px;background:#282641;border:1px solid #484362;font-size:12px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.side h2{font-size:14px;letter-spacing:.08em;margin:0 0 12px;color:#ff7290}
+.statgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}.stat{background:#11101e;border:1px solid #302c47;border-radius:8px;padding:10px}.stat small{display:block;color:#a7a2c6;font-size:10px;margin-bottom:5px}.stat strong{font:800 22px ui-monospace,monospace}
+.rules{padding:0;list-style:none;margin:0;display:grid;gap:10px}.rules li{display:flex;gap:9px;font-size:12px;color:#d3cfea;line-height:1.55}.num{flex:none;background:#302b47;color:#ff7995;border-radius:5px;padding:3px 6px;height:max-content;font-weight:900}
+.note{border-top:1px solid #37334f;margin-top:15px;padding-top:12px;font-size:11px;line-height:1.7;color:#a7a2c6}
+#message{min-height:20px;font-size:12px;color:#ff9bb0;margin-top:8px;font-weight:800}
+@media(max-width:720px){main{grid-template-columns:1fr}.side{display:grid;grid-template-columns:1fr;gap:10px}.panel{padding:12px}header{margin-bottom:12px}.tag{display:none}}
+</style>
+</head>
+<body>
+<div id="app" data-sites-preview-theme="custom">
+<header><div class="logo">◆ VOID RUN / 00:00</div><div class="tag">NO CHECKPOINTS · NO MERCY</div></header>
+<main>
+<section class="panel">
+<h1>鬼畜アスレチック<br><span>VOID RUN</span></h1>
+<p class="sub">一歩のミスで最初から。全30ゲートを突破しろ。<br>※ 操作はキーボードでも画面ボタンでもOK。</p>
+<div class="hud"><span>STAGE <b id="stage">01</b> / 30</span><span>DEATHS <b id="deaths">0</b></span><span>BEST <b id="best">—</b></span></div>
+<div class="bar"><div id="progress"></div></div>
+<canvas id="game" width="720" height="420" aria-label="VOID RUN ゲーム画面"></canvas>
+<div class="controls">
+<button id="left">◀ LEFT</button><button id="jump">▲ JUMP</button><button id="right">RIGHT ▶</button>
+</div>
+<div class="actions"><button id="start">RUN START</button><button class="secondary" id="restart">RESTART</button><button class="secondary" id="sound">SOUND: OFF</button></div>
+<div id="message" aria-live="polite">RUN START を押せ。説明は言い訳にならない。</div>
+</section>
+<aside class="panel side">
+<div><h2>MISSION DATA</h2><div class="statgrid">
+<div class="stat"><small>残りゲート</small><strong id="remaining">30</strong></div>
+<div class="stat"><small>進行率</small><strong id="percent">0%</strong></div>
+<div class="stat"><small>最高連続成功</small><strong id="streak">0</strong></div>
+<div class="stat"><small>難易度</small><strong id="difficulty">HELL</strong></div>
+</div></div>
+<div><h2>HOW TO DIE (OR WIN)</h2><ul class="rules">
+<li><span class="num">01</span><span><b>← → / A D</b> で移動。<b>Space / ↑ / W</b> でジャンプ。</span></li>
+<li><span class="num">02</span><span>赤い床・トゲ・回転レーザーに触れると即リセット。</span></li>
+<li><span class="num">03</span><span>ゲートごとに足場が狭く、トラップの速度も上昇。</span></li>
+<li><span class="num">04</span><span>光る緑のゲートに到達で次ステージ。途中セーブなし。</span></li>
+</ul></div>
+<div class="note">WARNING: このゲームは理不尽さを含みます。<br>死んでも現実の君はノーダメージ。深呼吸して再挑戦。</div>
+</aside>
+</main>
+</div>
+<script>
+(()=>{
+const c=document.getElementById('game'),ctx=c.getContext('2d');
+const $=id=>document.getElementById(id);
+const W=c.width,H=c.height,ground=365;
+let stage=1,deaths=0,streak=0,best=0,running=false,won=false,frame=0,raf=0,keys={},sound=false,audio=null;
+let p,platforms,hazards,goal,particles=[],lastStage=1;
+function setup(){
+ p={x:34,y:ground-24,w:17,h:24,vx:0,vy:0,on:false};
+ platforms=[{x:0,y:ground,w:120,h:55},{x:150,y:ground-35,w:58,h:12},{x:235,y:ground-80,w:48,h:12},{x:315,y:ground-25,w:55,h:12},{x:405,y:ground-95,w:45,h:12},{x:490,y:ground-48,w:52,h:12},{x:585,y:ground-10,w:135,h:55}];
+ const count=Math.min(4+Math.floor(stage/2),13);
+ hazards=[];
+ for(let i=0;i<count;i++){
+  let x=130+i*(560/count);
+  hazards.push({x,y:ground-9,w:15+((i+stage)%3)*3,h:9,phase:i*1.7,amp:8+stage*.45,speed:.045+stage*.003+(i%3)*.008,kind:i%4===0?'orb':i%4===1?'laser':'spike'});
+ }
+ // Narrow gaps and moving platforms ramp with stage
+ platforms=platforms.map((q,i)=>({...q,w:Math.max(25,q.w-Math.min(20,stage*.45)+(i%2?0:5))}));
+ goal={x:W-44,y:ground-58,w:18,h:58};
+ frame=0;particles=[];won=false;
+}
+function beep(freq=440,dur=.07){if(!sound)return;try{audio=audio||new(window.AudioContext||window.webkitAudioContext)();let o=audio.createOscillator(),g=audio.createGain();o.connect(g);g.connect(audio.destination);o.frequency.value=freq;g.gain.value=.035;o.start();g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+dur);o.stop(audio.currentTime+dur)}catch(e){}}
+function resetGame(){stage=1;deaths=0;streak=0;running=false;setup();updateHud();draw();$('message').textContent='30ゲート。チェックポイントは存在しない。';$('start').textContent='RUN START'}
+function die(reason){if(!running)return;deaths++;streak=0;beep(110,.16);$('message').textContent='💀 '+reason+' — 全ステージリセット！';stage=1;setup();updateHud();p.x=34;p.y=ground-24;draw();running=false;$('start').textContent='TRY AGAIN'}
+function next(){streak++;best=Math.max(best,streak);beep(650,.08);if(stage>=30){running=false;won=true;$('message').textContent='🏆 VOID CONQUERED. 人類最強クラス。';$('start').textContent='PLAY AGAIN';draw();return}stage++;setup();p.x=30;p.y=ground-24;updateHud();$('message').textContent='GATE CLEAR! 次はもっと性格が悪い。';}
+function updateHud(){$('stage').textContent=String(stage).padStart(2,'0');$('deaths').textContent=deaths;$('best').textContent=best;$('remaining').textContent=30-stage+1;$('percent').textContent=Math.round((stage-1)/30*100)+'%';$('streak').textContent=streak;$('progress').style.width=((stage-1)/30*100)+'%';}
+function rect(x,y,w,h,col){ctx.fillStyle=col;ctx.fillRect(x,y,w,h)}
+function draw(){
+ ctx.clearRect(0,0,W,H);
+ let grad=ctx.createLinearGradient(0,0,0,H);grad.addColorStop(0,'#111329');grad.addColorStop(1,'#080912');ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+ ctx.strokeStyle='#282746';ctx.lineWidth=1;for(let x=0;x<W;x+=30){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}for(let y=0;y<H;y+=30){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+ // stage marker
+ ctx.fillStyle='#c2bddf';ctx.font='12px monospace';ctx.fillText('SECTOR '+String(stage).padStart(2,'0')+' // '+(running?'LIVE':'STANDBY'),15,22);
+ platforms.forEach((q,i)=>{rect(q.x,q.y,q.w,q.h,'#34304f');rect(q.x,q.y,q.w,3,'#a49bcf');if(i===0)ctx.fillStyle='#ff3b63'});
+ // danger floor
+ rect(0,ground+55,W,H-ground-55,'#310d26');rect(0,ground+55,W,3,'#ff3b63');
+ hazards.forEach((h,i)=>{let xx=h.x+Math.sin(frame*h.speed+h.phase)*h.amp; if(h.kind==='spike'){ctx.fillStyle='#ff3b63';ctx.beginPath();ctx.moveTo(xx,h.y+h.h);ctx.lineTo(xx+h.w/2,h.y-10);ctx.lineTo(xx+h.w,h.y+h.h);ctx.closePath();ctx.fill()}else if(h.kind==='laser'){rect(xx,h.y-22,3,35,'#ff315b');ctx.shadowColor='#ff315b';ctx.shadowBlur=10;rect(xx-2,h.y-22,7,3,'#ff7890');ctx.shadowBlur=0}else{ctx.beginPath();ctx.arc(xx+7,h.y-5,7,0,Math.PI*2);ctx.fillStyle='#ff4e6c';ctx.shadowColor='#ff234d';ctx.shadowBlur=12;ctx.fill();ctx.shadowBlur=0}});
+ // goal
+ ctx.shadowColor='#65ffc0';ctx.shadowBlur=16;rect(goal.x,goal.y,goal.w,goal.h,'#47f5a8');ctx.shadowBlur=0;ctx.fillStyle='#0b1720';ctx.font='bold 10px monospace';ctx.fillText('GO',goal.x-1,goal.y-7);
+ // player
+ ctx.shadowColor='#fff';ctx.shadowBlur=10;rect(p.x,p.y,p.w,p.h,'#f7f4ff');ctx.shadowBlur=0;rect(p.x+11,p.y+5,3,3,'#ff3b63');
+ if(!running&&!won){ctx.fillStyle='rgba(5,5,15,.58)';ctx.fillRect(0,0,W,H);ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font='900 25px system-ui';ctx.fillText('NO MERCY',W/2,H/2-7);ctx.font='12px monospace';ctx.fillStyle='#ff7895';ctx.fillText('PRESS RUN START',W/2,H/2+19);ctx.textAlign='left'}
+ if(won){ctx.fillStyle='rgba(5,5,15,.72)';ctx.fillRect(0,0,W,H);ctx.textAlign='center';ctx.fillStyle='#65ffc0';ctx.font='900 28px system-ui';ctx.fillText('VOID CONQUERED',W/2,H/2);ctx.fillStyle='#fff';ctx.font='14px monospace';ctx.fillText('DEATHS: '+deaths,W/2,H/2+27);ctx.textAlign='left'}
+}
+function collide(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y}
+function tick(){
+ if(!running)return;frame++;
+ const accel=.58, max=3.1+Math.min(stage*.035,.8);
+ p.vx=0;if(keys.left)p.vx=-max;if(keys.right)p.vx=max;
+ if(keys.jump&&p.on){p.vy=-(8.2+Math.min(stage*.025,.6));p.on=false;beep(300,.04)}
+ p.vy+=.38;p.vy=Math.min(p.vy,9);
+ let oldY=p.y;p.x+=p.vx;p.x=Math.max(0,Math.min(W-p.w,p.x));p.y+=p.vy;p.on=false;
+ for(const q of platforms){if(p.vy>=0&&oldY+p.h<=q.y+3&&p.y+p.h>=q.y&&p.x+p.w>q.x&&p.x<q.x+q.w){p.y=q.y-p.h;p.vy=0;p.on=true}}
+ // Hazards are animated and grow more aggressive with stage
+ for(const h of hazards){let xx=h.x+Math.sin(frame*h.speed+h.phase)*h.amp;let hb=h.kind==='spike'?{x:xx+2,y:h.y-5,w:h.w-4,h:10}:h.kind==='laser'?{x:xx-2,y:h.y-22,w:7,h:35}:{x:xx,y:h.y-12,w:15,h:15};if(collide(p,hb)){die('トラップ接触');return}}
+ if(p.y>H+20||p.x<0){die('落下');return}
+ if(collide(p,goal)){next();if(!running){updateHud();draw();return}}
+ updateHud();draw();raf=requestAnimationFrame(tick)
+}
+function start(){if(won){resetGame()}if(running)return;running=true;$('start').textContent='RUNNING…';$('message').textContent='集中。赤に触れたら終わり。';beep(520,.06);cancelAnimationFrame(raf);tick()}
+function setKey(k,v){keys[k]=v}
+$('start').addEventListener('click',start);$('restart').addEventListener('click',resetGame);
+$('sound').addEventListener('click',()=>{sound=!sound;$('sound').textContent='SOUND: '+(sound?'ON':'OFF');if(sound)beep()});
+function bindHold(id,key){let b=$(id);b.addEventListener('pointerdown',e=>{e.preventDefault();keys[key]=true;b.setPointerCapture(e.pointerId)});['pointerup','pointercancel','lostpointercapture'].forEach(ev=>b.addEventListener(ev,()=>keys[key]=false))}
+bindHold('left','left');bindHold('right','right');bindHold('jump','jump');
+window.addEventListener('keydown',e=>{let k=e.key.toLowerCase();if(['arrowleft','arrowright','arrowup',' ','a','d','w'].includes(k))e.preventDefault();if(k==='arrowleft'||k==='a')keys.left=true;if(k==='arrowright'||k==='d')keys.right=true;if(k==='arrowup'||k==='w'||k===' ')keys.jump=true;if(k==='enter'&&!running)start()});
+window.addEventListener('keyup',e=>{let k=e.key.toLowerCase();if(k==='arrowleft'||k==='a')keys.left=false;if(k==='arrowright'||k==='d')keys.right=false;if(k==='arrowup'||k==='w'||k===' ')keys.jump=false});
+window.addEventListener('blur',()=>keys={});
+setup();updateHud();draw();
+})();
+</script>
+</body></html>
